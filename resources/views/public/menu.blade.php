@@ -23,8 +23,34 @@
 
         <div class="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
             <div class="space-y-10">
+                <section class="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <p class="text-xs uppercase tracking-[0.3em] text-red-500">Busca</p>
+                            <h3 class="text-lg font-semibold text-gray-900">Encontre seu prato</h3>
+                            <p class="mt-1 text-xs text-gray-500">Digite o nome ou categoria para filtrar o cardápio.</p>
+                        </div>
+                        <div class="w-full sm:w-72">
+                            <div class="relative">
+                                <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1010.5 18.5a7.5 7.5 0 006.15-3.85z" />
+                                    </svg>
+                                </span>
+                                <input
+                                    id="menu-search-input"
+                                    type="text"
+                                    placeholder=" Buscar itens do cardápio..."
+                                    class="block w-full rounded-full border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-3 text-sm text-gray-900 placeholder:text-gray-400 shadow-sm focus:border-red-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                                >
+                            </div>
+                        </div>
+                    </div>
+                    <p id="menu-search-empty-state" class="mt-3 hidden text-xs text-gray-500">
+                        Nenhum item encontrado para a busca atual. Tente usar outras palavras ou limpar o campo de busca.
+                    </p>
+                </section>
                 @forelse ($categorias as $categoria => $itens)
-                    <section>
+                    <section data-category-section>
                         <div class="mb-4 flex items-center justify-between">
                             <div>
                                 <p class="text-xs uppercase tracking-[0.3em] text-red-500">Categoria</p>
@@ -38,7 +64,11 @@
                                 @php
                                     $cartItem = $cartItems->get($item->id);
                                 @endphp
-                                <article class="rounded-3xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+                                <article
+                                    class="rounded-3xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                                    data-menu-item
+                                    data-search-text="{{ $item->nome }} {{ $item->descricao }} {{ $categoria }}"
+                                >
                                     @if ($item->imagem)
                                         <img src="{{ asset('storage/' . $item->imagem) }}" alt="{{ $item->nome }}" class="h-48 w-full rounded-t-3xl object-cover">
                                     @else
@@ -200,6 +230,61 @@
             </aside>
         </div>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('menu-search-input');
+            const items = Array.from(document.querySelectorAll('[data-menu-item]'));
+            const sections = Array.from(document.querySelectorAll('[data-category-section]'));
+            const emptyState = document.getElementById('menu-search-empty-state');
+
+            if (!searchInput || !items.length) {
+                return;
+            }
+
+            const normalize = (text) => {
+                return text
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '');
+            };
+
+            const applyFilter = () => {
+                const query = normalize(searchInput.value.trim());
+                let visibleItemsCount = 0;
+
+                items.forEach((item) => {
+                    const haystack = normalize(item.getAttribute('data-search-text') || '');
+                    const matches = !query || haystack.includes(query);
+
+                    if (matches) {
+                        item.classList.remove('hidden');
+                        visibleItemsCount++;
+                    } else {
+                        item.classList.add('hidden');
+                    }
+                });
+
+                sections.forEach((section) => {
+                    const sectionItems = Array.from(section.querySelectorAll('[data-menu-item]'));
+                    const hasVisibleItems = sectionItems.some((el) => !el.classList.contains('hidden'));
+
+                    if (hasVisibleItems) {
+                        section.classList.remove('hidden');
+                    } else {
+                        section.classList.add('hidden');
+                    }
+                });
+
+                if (emptyState) {
+                    if (!query || visibleItemsCount > 0) {
+                        emptyState.classList.add('hidden');
+                    } else {
+                        emptyState.classList.remove('hidden');
+                    }
+                }
+            };
+
+            searchInput.addEventListener('input', applyFilter);
+        });
+    </script>
 @endsection
-
-
