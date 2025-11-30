@@ -23,11 +23,21 @@ class AuthController extends Controller
             'cnpj' => ['required', 'string', 'max:18'],
         ]);
 
-        $restaurante = Restaurante::query()
+        // Normalizar CNPJ removendo formatação (pontos, barras e hífens)
+        $cnpjNormalizado = preg_replace('/[^0-9]/', '', $data['cnpj']);
+
+        // Buscar restaurante por email e status
+        $restaurantes = Restaurante::query()
             ->where('email', $data['email'])
-            ->where('cnpj', $data['cnpj'])
             ->where('status', 'ativo')
-            ->first();
+            ->get();
+
+        // Comparar CNPJ normalizado
+        $restaurante = $restaurantes->first(function ($restaurante) use ($cnpjNormalizado) {
+            // Normalizar CNPJ do banco para comparação
+            $cnpjBanco = preg_replace('/[^0-9]/', '', $restaurante->cnpj ?? '');
+            return $cnpjBanco === $cnpjNormalizado;
+        });
 
         if (!$restaurante) {
             return back()->withErrors([

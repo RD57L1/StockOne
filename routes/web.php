@@ -12,6 +12,8 @@ use App\Http\Controllers\PedidoItemController;
 use App\Http\Controllers\PublicCartController;
 use App\Http\Controllers\PublicMenuController;
 use App\Http\Controllers\ReceitaController;
+use App\Http\Controllers\RestauranteController;
+use App\Http\Controllers\UserProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -30,9 +32,16 @@ Route::patch('/carrinho/{cardapioItemId}', [PublicCartController::class, 'update
 Route::delete('/carrinho/{cardapioItemId}', [PublicCartController::class, 'destroy'])->name('public.cart.destroy');
 Route::post('/carrinho/finalizar', [PublicCartController::class, 'checkout'])->name('public.cart.checkout');
 
+// Rotas para perfil de usuário (autenticação Laravel padrão)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/profile', [UserProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [UserProfileController::class, 'update'])->name('profile.update');
+});
+
 Route::middleware('restaurante.session')->group(function () {
     Route::view('/dashboard', 'dashboard')->name('dashboard');
 
+    Route::resource('restaurantes', RestauranteController::class)->except(['show']);
     Route::resource('insumos', InsumoController::class)->except(['show']);
     Route::resource('cardapio-itens', CardapioItemController::class)
         ->parameters(['cardapio-itens' => 'cardapio_item'])
